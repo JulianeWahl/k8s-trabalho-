@@ -1,0 +1,19 @@
+name: CD - Deploy to Minikube
+
+on:
+  workflow_run:
+    workflows: ["CI - Build and Push Docker Image"]
+    types:
+      - completed
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Configurar kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 -d > kubeconfig
+        export KUBECONFIG=$PWD/kubeconfig
+
+    - name: Aplicar manifests no Minikube
+      run: kubectl apply -f k8s/
