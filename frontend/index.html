@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard de Métricas</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #f4f4f4; }
+    h1 { color: #333; }
+    .metric { margin: 10px 0; }
+    button { margin: 5px; padding: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Monitoramento da Aplicação</h1>
+  <div class="metric" id="requests">Requisições: carregando...</div>
+  <div class="metric" id="users">Usuários conectados: carregando...</div>
+  <div class="metric" id="responseTime">Tempo de resposta: carregando...</div>
+
+  <button onclick="simulateLogin()">Simular Login</button>
+  <button onclick="simulateLogout()">Simular Logout</button>
+
+  <script src="script.js"></script>
+</body>
+</html>
