@@ -9,11 +9,22 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    steps:
-    - name: Configurar kubectl
-      run: |
-        echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 -d > kubeconfig
-        export KUBECONFIG=$PWD/kubeconfig
+    environment: production  # permite aprovação manual no GitHub
 
-    - name: Aplicar manifests no Minikube
-      run: kubectl apply -f k8s/
+    steps:
+      - name: Configurar kubectl
+        run: |
+          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 -d > kubeconfig
+          export KUBECONFIG=$PWD/kubeconfig
+
+      - name: Substituir porta da aplicação
+        run: |
+          sed -i 's/{{APP_PORT}}/'"${{ secrets.APP_PORT }}"'/g' k8s/deployment.yaml
+
+      - name: Aplicar manifests no Minikube
+        run: |
+          NAMESPACE=${{ secrets.K8S_NAMESPACE }}
+          if [ -z "$NAMESPACE" ]; then
+            NAMESPACE=default
+          fi
+          kubectl apply -n $NAMESPACE -f k8s/
