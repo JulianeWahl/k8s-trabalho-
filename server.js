@@ -1,4 +1,6 @@
 console.log("PORT:", process.env.PORT);
+console.log("Teste de deploy ponta-a-ponta");
+
 
 const express = require('express');
 const client = require('prom-client');
