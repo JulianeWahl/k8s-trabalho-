@@ -1,13 +1,12 @@
 console.log("PORT:", process.env.PORT);
 console.log("Teste de deploy ponta-a-ponta");
 
-
 const express = require('express');
 const client = require('prom-client');
 const path = require('path');
 
 const app = express();
-const port = process.env.PORT || 3000; // ← agora usa vaSriável de ambiente
+const port = process.env.PORT || 3000;
 
 app.use(express.static(path.join(__dirname, 'frontend')));
 
@@ -56,6 +55,10 @@ app.get('/logout', (req, res) => {
 app.get('/metrics', async (req, res) => {
   res.set('Content-Type', client.register.contentType);
   res.end(await client.register.metrics());
+});
+
+app.get('/ping', (req, res) => {
+  res.send('pong');
 });
 
 app.listen(port, () => {
