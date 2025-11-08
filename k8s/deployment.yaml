@@ -14,7 +14,10 @@ spec:
     spec:
       containers:
         - name: monitor
-          image: monitor:latest
-          imagePullPolicy: Never 
+          image: julianewahl/monitor:latest
+          imagePullPolicy: IfNotPresent
           ports:
-          - containerPort: 3000
+            - containerPort: 3000
+          env:
+            - name: PORT
+              value: "3000"
