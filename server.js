@@ -56,8 +56,10 @@ app.get('/metrics', async (req, res) => {
   res.set('Content-Type', client.register.contentType);
   res.end(await client.register.metrics());
 });
+console.log("Rota /ping confirmada para CI/CD");
 
 app.get('/ping', (req, res) => {
+  console.log("Rota /ping confirmada para CI/CD");
   res.send('pong');
 });
 
