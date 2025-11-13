@@ -13,6 +13,11 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
+      - name: Instalar dependências do Kubernetes
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y conntrack
+
       - name: Instalar Minikube e kubectl
         run: |
           curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
