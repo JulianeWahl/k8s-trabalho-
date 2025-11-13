@@ -1,14 +1,11 @@
 name: CD - Deploy to Minikube
 
 on:
-  workflow_run:
-    workflows: ["CI - Build & Push Docker"]
-    types:
-      - completed
+  push:
+    branches: [ "main" ]
 
 jobs:
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     environment: production
 
