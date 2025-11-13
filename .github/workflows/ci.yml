@@ -31,13 +31,10 @@ jobs:
             npm install
           fi
 
-      - name: Rodar testes (se tiver)
+      - name: Rodar testes com Jest
         run: |
-          if npm run | grep -q " test"; then
-            npm test
-          else
-            echo "Sem script de teste. Pulando etapa."
-          fi
+          echo "🔍 Executando testes com Jest..."
+          npm test
 
       - name: Definir tags da imagem
         id: vars
