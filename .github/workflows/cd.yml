@@ -18,6 +18,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y conntrack
 
+      - name: Instalar crictl
+        run: |
+          curl -LO https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.29.0/crictl-v1.29.0-linux-amd64.tar.gz
+          sudo tar -C /usr/local/bin -xzf crictl-v1.29.0-linux-amd64.tar.gz
+
       - name: Instalar Minikube e kubectl
         run: |
           curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
