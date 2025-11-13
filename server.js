@@ -63,6 +63,6 @@ app.get('/ping', (req, res) => {
   res.send('pong');
 });
 
-app.listen(port, () => {
+app.listen(port, () => { 
   console.log(`✅ Servidor rodando na porta ${port}`);
 });
