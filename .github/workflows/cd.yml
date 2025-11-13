@@ -15,12 +15,22 @@ jobs:
 
       - name: Configurar kubeconfig
         run: |
+          mkdir -p $HOME/.kube
           echo "${{ secrets.KUBE_CONFIG_DATA }}" | tr -d '\n' | base64 -d > $HOME/.kube/config
           export KUBECONFIG=$HOME/.kube/config
+          echo "✅ kubeconfig configurado"
 
       - name: Substituir porta da aplicação
         run: |
-          sed -i 's/{{APP_PORT}}/'"${{ secrets.APP_PORT }}"'/g' k8s/deployment.yaml
+          sed -i 's/{{APP_PORT}}/'"${{ secrets.APP_PORT }}"'/g' k8s/deployment.yaml || echo "⚠️ Nenhuma substituição feita"
+
+      - name: Criar namespace se necessário
+        run: |
+          NAMESPACE=${{ secrets.K8S_NAMESPACE }}
+          if [ -z "$NAMESPACE" ]; then
+            NAMESPACE=default
+          fi
+          kubectl get ns $NAMESPACE || kubectl create ns $NAMESPACE
 
       - name: Aplicar manifests no Minikube
         run: |
