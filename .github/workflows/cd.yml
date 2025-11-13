@@ -13,12 +13,17 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      - name: Configurar kubeconfig
+      - name: Instalar Minikube e kubectl
         run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG_DATA }}" | tr -d '\n' | base64 -d > $HOME/.kube/config
-          export KUBECONFIG=$HOME/.kube/config
-          echo "✅ kubeconfig configurado"
+          curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+          sudo install minikube-linux-amd64 /usr/local/bin/minikube
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+      - name: Iniciar Minikube
+        run: |
+          sudo minikube start --driver=none
+          echo "✅ Minikube iniciado"
 
       - name: Substituir porta da aplicação
         run: |
