@@ -29,11 +29,15 @@ jobs:
           version: 'latest'
 
       - name: Configure kubeconfig
+        shell: pwsh
         run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG_DATA }}" | tr -d '\n' | base64 -d > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
-          echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
+          $kubeDir = "$env:USERPROFILE\.kube"
+          if (!(Test-Path $kubeDir)) {
+          New-Item -ItemType Directory -Path $kubeDir | Out-Null
+           }
+          $configPath = "$kubeDir\config"
+          [System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String("${{ secrets.KUBE_CONFIG_DATA }}")) | Out-File -Encoding ascii $configPath
+          $env:KUBECONFIG = $configPath
           kubectl version --client
 
       - name: Criar namespace se necessário
