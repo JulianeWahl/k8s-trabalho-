@@ -1,16 +1,14 @@
 name: CD - Deploy to Kubernetes
 
 on:
-  workflow_run:
-    workflows: ["CI - Build & Push Docker"]
-    types: ["completed"]
+  push:
+    branches: [ "main" ]
 
 permissions:
   contents: read
 
 jobs:
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     environment: production
 
@@ -22,7 +20,7 @@ jobs:
         id: vars
         run: |
           echo "IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/monitor" >> $GITHUB_OUTPUT
-          echo "TAG_SHA=$(echo '${{ github.event.workflow_run.head_sha }}' | cut -c1-7)" >> $GITHUB_OUTPUT
+          echo "TAG_SHA=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
           echo "NAMESPACE=${{ secrets.K8S_NAMESPACE || 'default' }}" >> $GITHUB_OUTPUT
 
       - name: Setup kubectl
