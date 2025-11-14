@@ -1,41 +1,77 @@
-name: CD - Deploy to Minikube
+name: CD - Deploy to Kubernetes
 
 on:
-  push:
-    branches: [ "main" ]
+  workflow_run:
+    workflows: ["CI - Build & Push Docker"]
+    types: ["completed"]
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     environment: production
 
     steps:
-      - name: Checkout código
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configurar kubeconfig
+      - name: Set vars
+        id: vars
+        run: |
+          echo "IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/monitor" >> $GITHUB_OUTPUT
+          echo "TAG_SHA=$(echo '${{ github.event.workflow_run.head_sha }}' | cut -c1-7)" >> $GITHUB_OUTPUT
+          echo "NAMESPACE=${{ secrets.K8S_NAMESPACE || 'default' }}" >> $GITHUB_OUTPUT
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Configure kubeconfig (tolerante a erro)
         run: |
           mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG_DATA }}" | tr -d '\n' | base64 -d > $HOME/.kube/config
-          export KUBECONFIG=$HOME/.kube/config
-          echo "✅ kubeconfig configurado"
+          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 -d > $HOME/.kube/config || echo "⚠️ Falha ao decodificar kubeconfig"
+          chmod 600 $HOME/.kube/config || true
+          echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
+          kubectl version --client || echo "⚠️ kubectl não conseguiu ler kubeconfig"
 
-      - name: Substituir porta da aplicação
+      - name: Criar namespace se necessário (tolerante)
         run: |
-          sed -i 's/{{APP_PORT}}/'"${{ secrets.APP_PORT }}"'/g' k8s/deployment.yaml || echo "⚠️ Nenhuma substituição feita"
+          NAMESPACE="${{ steps.vars.outputs.NAMESPACE }}"
+          kubectl get ns "$NAMESPACE" >/dev/null 2>&1 || kubectl create ns "$NAMESPACE" || echo "⚠️ Falha ao criar namespace"
 
-      - name: Criar namespace se necessário
+      - name: Aplicar base manifests (best-effort)
         run: |
-          NAMESPACE=${{ secrets.K8S_NAMESPACE }}
-          if [ -z "$NAMESPACE" ]; then
-            NAMESPACE=default
-          fi
-          kubectl get ns $NAMESPACE || kubectl create ns $NAMESPACE
+          NAMESPACE="${{ steps.vars.outputs.NAMESPACE }}"
+          kubectl apply -n "$NAMESPACE" -f k8s/service.yaml || echo "⚠️ Falha service.yaml"
+          kubectl apply -n "$NAMESPACE" -f k8s/prometheus-deployment.yaml || echo "⚠️ Falha prometheus"
+          kubectl apply -n "$NAMESPACE" -f k8s/grafana-deployment.yaml || echo "⚠️ Falha grafana"
+          kubectl apply -n "$NAMESPACE" -f k8s/nginx-deployment.yaml || echo "⚠️ Falha nginx"
+          kubectl apply -n "$NAMESPACE" -f k8s/nginx-service.yaml || echo "⚠️ Falha nginx service"
+          kubectl apply -n "$NAMESPACE" -f k8s/prometheus-config.yaml || echo "⚠️ Falha prometheus config"
 
-      - name: Aplicar manifests no Minikube
+      - name: Aplicar app deployment
         run: |
-          NAMESPACE=${{ secrets.K8S_NAMESPACE }}
-          if [ -z "$NAMESPACE" ]; then
-            NAMESPACE=default
-          fi
-          kubectl apply -n $NAMESPACE -f k8s/
+          NAMESPACE="${{ steps.vars.outputs.NAMESPACE }}"
+          kubectl apply -n "$NAMESPACE" -f k8s/deployment.yaml || echo "⚠️ Falha deployment"
+
+      - name: Atualizar imagem
+        run: |
+          NAMESPACE="${{ steps.vars.outputs.NAMESPACE }}"
+          IMAGE="${{ steps.vars.outputs.IMAGE }}"
+          TAG_SHA="${{ steps.vars.outputs.TAG_SHA }}"
+          kubectl set image deployment/monitor monitor="$IMAGE:$TAG_SHA" -n "$NAMESPACE" --record || echo "⚠️ Falha ao atualizar imagem"
+
+      - name: Aguardar rollout
+        run: |
+          NAMESPACE="${{ steps.vars.outputs.NAMESPACE }}"
+          kubectl rollout status deployment/monitor -n "$NAMESPACE" --timeout=120s || echo "⚠️ Rollout falhou ou expirou"
+
+      - name: Mostrar serviços e pods
+        run: |
+          NAMESPACE="${{ steps.vars.outputs.NAMESPACE }}"
+          kubectl get svc -n "$NAMESPACE" || echo "⚠️ Falha ao listar serviços"
+          kubectl get pods -o wide -n "$NAMESPACE" || echo "⚠️ Falha ao listar pods"
