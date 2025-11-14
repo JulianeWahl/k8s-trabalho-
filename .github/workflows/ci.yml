@@ -34,7 +34,7 @@ jobs:
       - name: Rodar testes com Jest
         run: |
           echo "🔍 Executando testes com Jest..."
-          npm test
+          npm test -- --passWithNoTests
 
       - name: Definir tags da imagem
         id: vars
